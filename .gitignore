@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Test artifacts
+tests/out/
+*.log
+
+# Vagrant
+.vagrant/
+*.box
+*.vmk
+
+# PowerShell artifacts
+*.tmp.ps1
+*.ps1.tmp
+
+# OS
+.DS_Store
+Thumbs.db

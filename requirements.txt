@@ -1,0 +1,7 @@
+impacket>=0.11.0
+ldap3>=2.9.1
+dnspython>=2.4.0
+pycryptodome>=3.19.0
+pytest>=7.4.0
+ruff>=0.4.0
+mypy>=1.8.0
