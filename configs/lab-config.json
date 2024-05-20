@@ -1,0 +1,164 @@
+{
+  "domain": {
+    "fqdn": "corp.local",
+    "netbios": "CORP",
+    "base_dn": "DC=corp,DC=local",
+    "dc01": "dc01.corp.local"
+  },
+  "env": {
+    "vm_network": "192.168.56.0/24",
+    "dc01_ip": "192.168.56.10",
+    "ws01_ip": "192.168.56.20",
+    "ubuntu_sec_ip": "192.168.56.30"
+  },
+  "ous": [
+    {
+      "name": "Tier0",
+      "path": "OU=Tier0,DC=corp,DC=local",
+      "description": "Tier-0 identity store: domain controllers, DA/EA/BA members.",
+      "protected_from_accidental_deletion": true
+    },
+    {
+      "name": "Tier1",
+      "path": "OU=Tier1,DC=corp,DC=local",
+      "description": "Tier-1 servers and service accounts.",
+      "protected_from_accidental_deletion": true
+    },
+    {
+      "name": "Tier2",
+      "path": "OU=Tier2,DC=corp,DC=local",
+      "description": "Tier-2 workstations and standard users.",
+      "protected_from_accidental_deletion": true
+    },
+    {
+      "name": "ServiceAccounts",
+      "path": "OU=ServiceAccounts,OU=Tier1,DC=corp,DC=local",
+      "description": "gMSA/SPN-bound service accounts (attack surface for Kerberoasting).",
+      "protected_from_accidental_deletion": false
+    },
+    {
+      "name": "PrivilegedAccess",
+      "path": "OU=PrivilegedAccess,OU=Tier0,DC=corp,DC=local",
+      "description": "Jump-host / PAW accounts with Tier-0 grants.",
+      "protected_from_accidental_deletion": true
+    }
+  ],
+  "groups": [
+    { "name": "Tier0-Admins", "ou_path": "OU=Tier0,DC=corp,DC=local" },
+    { "name": "Tier1-Admins", "ou_path": "OU=Tier1,DC=corp,DC=local" },
+    { "name": "Tier2-Admins", "ou_path": "OU=Tier2,DC=corp,DC=local" },
+    { "name": "SQL-Admins", "ou_path": "OU=ServiceAccounts,OU=Tier1,DC=corp,DC=local" }
+  ],
+  "users": [
+    {
+      "sam": "darc-admin",
+      "tier": 0,
+      "display_name": "DarcHacker Domain Admin",
+      "ou_path": "OU=PrivilegedAccess,OU=Tier0,DC=corp,DC=local",
+      "group_membership": ["Domain Admins", "Tier0-Admins", "Enterprise Admins"],
+      "high_value": true
+    },
+    {
+      "sam": "k.salim",
+      "tier": 0,
+      "display_name": "Kareem Salim (PAW)",
+      "ou_path": "OU=PrivilegedAccess,OU=Tier0,DC=corp,DC=local",
+      "group_membership": ["Tier0-Admins"],
+      "high_value": true
+    },
+    {
+      "sam": "svc-sql",
+      "tier": 1,
+      "display_name": "SQL Service Account",
+      "ou_path": "OU=ServiceAccounts,OU=Tier1,DC=corp,DC=local",
+      "group_membership": ["SQL-Admins"],
+      "spns": [
+        "MSSQLSvc/sql01.corp.local:1433",
+        "MSSQLSvc/sql01.corp.local:sql01"
+      ],
+      "high_value": true
+    },
+    {
+      "sam": "svc-httpd",
+      "tier": 1,
+      "display_name": "Web App Pool Service Account",
+      "ou_path": "OU=ServiceAccounts,OU=Tier1,DC=corp,DC=local",
+      "group_membership": ["Tier1-Admins"],
+      "spns": [
+        "HTTP/web01.corp.local",
+        "HTTP/web01.corp.local:443"
+      ],
+      "high_value": true
+    },
+    {
+      "sam": "t1-admin",
+      "tier": 1,
+      "display_name": "Tier-1 Server Admin",
+      "ou_path": "OU=Tier1,DC=corp,DC=local",
+      "group_membership": ["Tier1-Admins"],
+      "high_value": false
+    },
+    {
+      "sam": "t2-user",
+      "tier": 2,
+      "display_name": "Standard Tier-2 Workstation User",
+      "ou_path": "OU=Tier2,DC=corp,DC=local",
+      "group_membership": ["Domain Users"],
+      "high_value": false
+    },
+    {
+      "sam": "asrep-user",
+      "tier": 2,
+      "display_name": "AS-REP Roastable User (detection canary)",
+      "ou_path": "OU=Tier2,DC=corp,DC=local",
+      "group_membership": ["Domain Users"],
+      "does_not_require_preauth": true,
+      "high_value": false
+    },
+    {
+      "sam": "backup-op",
+      "tier": 1,
+      "display_name": "Backup Operator (DCSync canary)",
+      "ou_path": "OU=Tier1,DC=corp,DC=local",
+      "group_membership": ["Backup Operators"],
+      "high_value": true
+    },
+    {
+      "sam": "svc-unconst",
+      "tier": 1,
+      "display_name": "Unconstrained Delegation Service Account (lab canary)",
+      "ou_path": "OU=ServiceAccounts,OU=Tier1,DC=corp,DC=local",
+      "group_membership": ["Tier1-Admins"],
+      "spns": ["cifs/svc-unconst.corp.local"],
+      "high_value": true
+    },
+    {
+      "sam": "svc-rbcd",
+      "tier": 1,
+      "display_name": "Constrained/RBCD Service Account (lab canary)",
+      "ou_path": "OU=ServiceAccounts,OU=Tier1,DC=corp,DC=local",
+      "group_membership": ["Domain Users"],
+      "spns": ["http/svc-rbcd.corp.local"],
+      "high_value": false
+    }
+  ],
+  "high_value_targets": [
+    { "type": "user", "sam": "krbtgt", "reason": "Golden-ticket anchor; DC password hash" },
+    { "type": "user", "sam": "darc-admin", "reason": "Domain Admin" },
+    { "type": "user", "sam": "svc-sql", "reason": "Kerberoastable Tier-1 service account" },
+    { "type": "user", "sam": "backup-op", "reason": "Member of Backup Operators (DCSync)" },
+    { "type": "object", "name": "dc01", "reason": "Domain controller; DCSync/DCShadow target" }
+  ],
+  "spns": [
+    "MSSQLSvc/sql01.corp.local:1433",
+    "MSSQLSvc/sql01.corp.local:sql01",
+    "HTTP/web01.corp.local",
+    "HTTP/web01.corp.local:443",
+    "cifs/svc-unconst.corp.local",
+    "http/svc-rbcd.corp.local"
+  ],
+  "delegation": [
+    { "sam": "svc-unconst", "type": "unconstrained", "spn": "cifs/svc-unconst.corp.local" },
+    { "sam": "svc-rbcd", "type": "constrained", "spn": "http/svc-rbcd.corp.local", "allowed_to_act_on": ["DC01$"] }
+  ]
+}

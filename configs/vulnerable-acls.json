@@ -1,0 +1,50 @@
+{
+  "description": "Catalog of intentionally insecure DACLs injected into the CORP.LOCAL lab.",
+  "acls": [
+    {
+      "id": "acl-001",
+      "right": "GenericAll",
+      "target_type": "group",
+      "target": "Tier1-Admins",
+      "trustee": "t2-user",
+      "access_mask": "0xF01FF",
+      "effect": "Full rights on the Tier1-Admins group: member can add itself to the group (privilege escalation to Tier-1).",
+      "inject_command": "Add-ADGroupMember",
+      "purge_command": "Remove-ADGroupMember"
+    },
+    {
+      "id": "acl-002",
+      "right": "WriteDacl",
+      "target_type": "group",
+      "target": "SQL-Admins",
+      "trustee": "t1-admin",
+      "access_mask": "0x40000",
+      "effect": "t1-admin can rewrite the DACL of SQL-Admins and grant itself GenericAll (DACL weaponization).",
+      "inject_command": "Set-Acl",
+      "purge_command": "Reset-Acl"
+    },
+    {
+      "id": "acl-003",
+      "right": "ForceChangePassword",
+      "target_type": "user",
+      "target": "darc-admin",
+      "trustee": "k.salim",
+      "guid": "User-Force-Change-Password",
+      "effect": "k.salim can reset the Domain Admin's password without extended-right sensitivity (ATO primitive).",
+      "inject_command": "Set-ADAccountPassword",
+      "purge_command": "Revert-Acl"
+    },
+    {
+      "id": "acl-004",
+      "right": "RBCD",
+      "target_type": "computer",
+      "target": "DC01$",
+      "trustee": "svc-rbcd",
+      "attribute": "msDS-AllowedToActOnBehalfOfOtherIdentity",
+      "effect": "svc-rbcd can request service tickets for SERVER-ONLY principals on DC01 (RBCD -> domain-admin).",
+      "inject_command": "Set-ADComputer -OtherAttributes",
+      "purge_command": "Clear-ADComputer"
+    }
+  ],
+  "allowed_rights": ["GenericAll", "WriteDacl", "WriteOwner", "ForceChangePassword", "GenericWrite", "RBCD"]
+}
