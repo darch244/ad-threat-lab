@@ -1,0 +1,137 @@
+title: Kerberoasting — Service Ticket Requested with RC4 Encryption
+id: 5b3a0c2a-3f14-4e8a-8e3a-47a2c1d9f001
+status: test
+description: >
+  Detects TGS-REQ events (Event 4769) where the requested service ticket uses
+  RC4 (etype 0x17). Requesting RC4 tickets at scale is the classic
+  Kerberoasting signature; Tier-0 SPN targets are highest value.
+references:
+  - https://attack.mitre.org/techniques/T1558/003/
+  - https://kb.cert.org/vuls/id/211
+author: Mostafa Ibrahim (DarcHacker)
+date: 2025/01/15
+logsource:
+  product: windows
+  service: security
+  definition: 'Requires: "Audit Kerberos Service Ticket Operations" (Event ID 4769) enabled.'
+detection:
+  selection:
+    EventID: 4769
+    TicketEncryptionType: '0x17'
+    ServiceName: 'krbtgt'
+    AccountName: 'KRBTGT'
+  filter_noisy:
+    ServiceName: 'krbtgt'
+  condition: selection and not filter_noisy
+falsepositives:
+  - Legacy applications that only support RC4 (rare in 2025+ environments)
+  - Final-stage checkers running against hardened accounts
+level: high
+tags:
+  - attack.credential_access
+  - attack.t1558.003
+fields:
+  - AccountName
+  - ClientAddress
+  - ServiceName
+  - TicketEncryptionType
+
+---
+title: Lateral Movement — Network Logon (Logon Type 3) from a Non-Domain Host
+id: 8f7f1a2b-90d2-45c8-9e3c-4b1d1e6c9002
+status: test
+description: >
+  Flags successful network logons (Event 4624, LogonType 3) that originate from
+  the attacker subnet or a source host not registered as a workstation. In the
+  lab the attacker host UBUNTU-SEC (192.168.56.30) is expected to produce this
+  when relaying or pass-the-hashing; in production this pattern is a
+  lateral-movement tripwire.
+logsource:
+  product: windows
+  service: security
+  definition: 'Requires: "Audit Logon" (Event 4624).'
+detection:
+  selection:
+    EventID: 4624
+    LogonType: '3'
+    LogonProcessName: 'NtLmSsp'
+  filter_expected_prod:
+    IpAddress: null
+  condition: selection and not filter_expected_prod
+falsepositives:
+  - Legitimate file-share or SQL connections from approved servers
+  - Scheduled tasks running across the network
+level: medium
+tags:
+  - attack.lateral_movement
+  - attack.t1021.002
+fields:
+  - TargetUserName
+  - IpAddress
+  - LogonType
+
+---
+title: Privilege Escalation — Special Privileges Assigned to a Tier-1/2 Account
+id: 9a3f7c1d-4e91-4b7d-8b1a-2c6d5f0e8003
+status: test
+description: >
+  Detects Event 4672 (special privileges assigned to a new logon) where the
+  subject is a previously low-tier account. Paired with 5136/4738 in a
+  correlation, this catches DA group membership added during a session.
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    EventID: '4672'
+    SubjectUserName: 'Administrator'
+    PrivilegeList: 'SeDebugPrivilege'
+  filter_system:
+    SubjectUserSid: 'S-1-5-18'
+  condition: selection and not filter_system
+falsepositives:
+  - A service running as SYSTEM legitimately obtaining SeDebugPrivilege
+level: medium
+tags:
+  - attack.privilege_escalation
+  - attack.t1548
+  - attack.t1134
+
+---
+title: ACL / Object Manipulation — Sensitive Attribute Modified (SPN, Delegation, UAC)
+id: 1b2a3c4d-5e6f-4a8b-9c0d-e1f2a3b4c5d4
+status: test
+description: >
+  Event 5136 (a directory service object was modified) where the modified
+  attribute enables a persistence or lateral-movement primitive:
+  servicePrincipalName (Kerberoasting surface), userAccountControl
+  (pre-auth/delegation changes), msDS-AllowedToActOnBehalfOfOtherIdentity
+  (RBCD), and the ForceChangePassword control-access right.
+logsource:
+  product: windows
+  service: security
+detection:
+  selection_attribute:
+    EventID: 5136
+    AttributeLDAPDisplayName:
+      - servicePrincipalName
+      - userAccountControl
+      - msDS-AllowedToActOnBehalfOfOtherIdentity
+  selection_ldap_display_name_legacy:
+    AttributeLDAPDisplayName: 'msDS-AllowedToActOnBehalfOfOtherIdentity'
+  filter_expected_engineering:
+    OperationType: '%%14674'  # value_modified by engineering tooling
+  condition: selection_attribute and not filter_expected_engineering
+falsepositives:
+  - Custom tooling that does legitimate SPN/UAC churn (patch acls, seelog)
+  - gMSA provisioning automation that stages SPNs temporarily
+level: high
+tags:
+  - attack.persistence
+  - attack.t1098.002
+  - attack.defense_evasion
+fields:
+  - SubjectUserName
+  - AttributeLDAPDisplayName
+  - OperationType
+  - ObjectDN
