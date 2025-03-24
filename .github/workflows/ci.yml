@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  validate:
+    name: pytest + ruff + schema validation
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Lint with ruff
+        run: ruff check tools tests
+
+      - name: Format check with ruff
+        run: ruff format --check tools tests
+
+      - name: Type-check with mypy
+        run: mypy tools
+
+      - name: Unit tests (offline, mocked domain)
+        run: pytest -q
+
+      - name: JSON schema validation
+        run: |
+          python - <<'EOF'
+          import json, sys
+          for p in ("configs/lab-config.json", "configs/vulnerable-acls.json"):
+              with open(p, encoding="utf-8") as f:
+                  json.load(f)
+              print(f"JSON OK: {p}")
+          EOF
