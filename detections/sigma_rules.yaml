@@ -135,3 +135,23 @@ fields:
   - AttributeLDAPDisplayName
   - OperationType
   - ObjectDN
+# --- Release v1.0.0 Production Baseline ---
+title: Suspicious Kerberos Encryption Downgrade via py_kerberoast
+id: d4b3c2a1-7788-4991-9123-bc4455667788
+status: production
+description: Detects TGS ticket requests with weak RC4 (0x17) encryption requested from non-standard administrative tooling.
+author: Mostafa Ibrahim (DarcHacker)
+date: 2026/09/15
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    EventID: 4769
+    TicketEncryptionType: '0x17'
+    TicketOptions: '0x40810000'
+  condition: selection
+level: medium
+tags:
+  - attack.credential_access
+  - attack.t1558.003

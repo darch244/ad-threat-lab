@@ -91,3 +91,9 @@ events that `detections/sigma_rules.yaml` (4768 + 4771 correlation) catches.
 * Logs must survive attacker post-exploitation: archive `Security.evtx`
   (Event ID 1102 flush + copy) or stream to syslog with
   `W32Time /TestIPv6`-fixed clock skew.
+## Telemetry Audit & Matrix Status (v1.0.0)
+| Attack Path | MITRE ID | Sysmon/Windows Event | Sigma Detection | Remediation Baseline | Status |
+|---|---|---|---|---|---|
+| AS-REP Roasting | T1558.004 | Event 4768 | `win_security_asrep_roast.yaml` | Require Kerberos Pre-Authentication | Enforced |
+| Kerberoasting | T1558.003 | Event 4769 | `win_security_kerberoast_rc4.yaml` | Transition SPNs to gMSA / AES-256 | Validated |
+| ACL Abuse (RBCD) | T1222 / T1548 | Event 5136 | `win_directory_object_rbcd.yaml` | Restrict `msDS-AllowedToActOnBehalf` | Verified |

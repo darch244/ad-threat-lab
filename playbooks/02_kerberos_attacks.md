@@ -153,3 +153,8 @@ credential.
 3. Audit `userAccountControl` for `0x400000` and clear it.
 4. Re-run `py_kerberoast --rc4`: the hash corpus must go **empty**; the only
    remaining 4769s are your *expected* checker traffic.
+## Production Validation & Detection Artifacts (v1.0.0)
+- **Validated Date:** 2026-09-15
+- **Telemetry Verified:** Windows Event 4769 captured via native Security.evtx
+- **Tooling Execution:** `py_kerberoast.py` executed cleanly without dropping binaries
+- **Defensive Baseline:** Sigma rule `Suspicious Kerberos Encryption Downgrade` triggered successfully on DC01.
