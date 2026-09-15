@@ -1,6 +1,8 @@
 # AD Threat Lab — Enterprise Active Directory Attack Simulation & Detection Lab
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+> **Status:** Production Release `v1.0.0` (Automated Multi-VM ATT&CK Simulation & Detection)
+
 [![Python](https://img.shields.io/badge/Python-3.11%2B-blue.svg)](requirements.txt)
 [![CI](https://github.com/DarcHacker/ad-threat-lab/actions/workflows/ci.yml/badge.svg)](.github/workflows/ci.yml)
 [![MITRE ATT&CK](https://img.shields.io/badge/MITRE%20ATT%26CK-Navigator-red.svg)](https://attack.mitre.org/matrices/enterprise/)
